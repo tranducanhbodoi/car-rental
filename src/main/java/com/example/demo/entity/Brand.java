@@ -20,6 +20,7 @@ public class Brand {
     @Column(nullable = false)
     private String name;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "brand")
     private List<Car> cars;
 }

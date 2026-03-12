@@ -25,7 +25,7 @@ public class FeedbackController {
     }
 
     @GetMapping("/car/{carId}")
-    public ResponseEntity<List<FeedbackResponse>> getFeedbacksByCarId(@PathVariable Integer carId) {
+    public ResponseEntity<List<FeedbackResponse>> getFeedbacksByCarId(@PathVariable("carId") Integer carId) {
         return ResponseEntity.ok(feedbackService.getFeedbacksByCarId(carId));
     }
 }

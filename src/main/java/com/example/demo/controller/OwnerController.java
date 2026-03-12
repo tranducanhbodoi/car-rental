@@ -61,7 +61,7 @@ public class OwnerController {
     }
 
     @PostMapping("/cars/{carId}/schedules")
-    public ResponseEntity<CarSchedule> addSchedule(@PathVariable Integer carId,
+    public ResponseEntity<CarSchedule> addSchedule(@PathVariable("carId") Integer carId,
                                                      @RequestBody ScheduleRequest request,
                                                      Authentication auth) {
         var car = carRepository.findById(carId)

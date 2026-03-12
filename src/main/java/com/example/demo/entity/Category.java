@@ -23,6 +23,7 @@ public class Category {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "category")
     private List<Car> cars;
 }
