@@ -23,7 +23,7 @@ public class PaymentController {
     }
 
     @GetMapping("/booking/{bookingId}")
-    public ResponseEntity<PaymentResponse> getPaymentByBookingId(@PathVariable Integer bookingId) {
+    public ResponseEntity<PaymentResponse> getPaymentByBookingId(@PathVariable("bookingId") Integer bookingId) {
         return ResponseEntity.ok(paymentService.getPaymentByBookingId(bookingId));
     }
 }

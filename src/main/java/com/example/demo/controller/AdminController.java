@@ -42,8 +42,8 @@ public class AdminController {
     }
 
     @PutMapping("/users/{id}/status")
-    public ResponseEntity<User> updateUserStatus(@PathVariable Integer id,
-                                                  @RequestParam String status) {
+    public ResponseEntity<User> updateUserStatus(@PathVariable("id") Integer id,
+                                                  @RequestParam("status") String status) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         user.setStatus(status);

@@ -136,12 +136,12 @@ public class CarService {
 
         // Update images
         if (request.getImageUrls() != null) {
-            carImageRepository.deleteAll(carImageRepository.findByCarCarId(carId));
-            List<CarImage> images = new ArrayList<>();
+            // Fix: Clear and add to the existing collection instead of replacing it
+            // This avoids "A collection with orphan deletion was no longer referenced" error
+            car.getCarImages().clear();
             for (String url : request.getImageUrls()) {
-                images.add(carImageRepository.save(CarImage.builder().car(car).imageUrl(url).build()));
+                car.getCarImages().add(CarImage.builder().car(car).imageUrl(url).build());
             }
-            car.setCarImages(images);
         }
 
         return mapToCarResponse(car);

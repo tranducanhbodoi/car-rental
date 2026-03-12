@@ -28,7 +28,7 @@ public class CarController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CarResponse> getCarById(@PathVariable Integer id) {
+    public ResponseEntity<CarResponse> getCarById(@PathVariable("id") Integer id) {
         return ResponseEntity.ok(carService.getCarById(id));
     }
 
@@ -38,14 +38,14 @@ public class CarController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CarResponse> updateCar(@PathVariable Integer id,
+    public ResponseEntity<CarResponse> updateCar(@PathVariable("id") Integer id,
                                                   @Valid @RequestBody CarRequest request,
                                                   Authentication auth) {
         return ResponseEntity.ok(carService.updateCar(id, request, auth.getName()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCar(@PathVariable Integer id, Authentication auth) {
+    public ResponseEntity<Void> deleteCar(@PathVariable("id") Integer id, Authentication auth) {
         carService.deleteCar(id, auth.getName());
         return ResponseEntity.noContent().build();
     }

@@ -30,17 +30,17 @@ public class BookingController {
     }
 
     @PutMapping("/{id}/cancel")
-    public ResponseEntity<BookingResponse> cancelBooking(@PathVariable Integer id, Authentication auth) {
+    public ResponseEntity<BookingResponse> cancelBooking(@PathVariable("id") Integer id, Authentication auth) {
         return ResponseEntity.ok(bookingService.cancelBooking(id, auth.getName()));
     }
 
     @PutMapping("/{id}/confirm")
-    public ResponseEntity<BookingResponse> confirmBooking(@PathVariable Integer id, Authentication auth) {
+    public ResponseEntity<BookingResponse> confirmBooking(@PathVariable("id") Integer id, Authentication auth) {
         return ResponseEntity.ok(bookingService.confirmBooking(id, auth.getName()));
     }
 
     @PutMapping("/{id}/complete")
-    public ResponseEntity<BookingResponse> completeBooking(@PathVariable Integer id, Authentication auth) {
+    public ResponseEntity<BookingResponse> completeBooking(@PathVariable("id") Integer id, Authentication auth) {
         return ResponseEntity.ok(bookingService.completeBooking(id, auth.getName()));
     }
 }
