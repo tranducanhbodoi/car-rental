@@ -38,7 +38,7 @@ public class Booking {
     @Column(name = "booking_type")
     private String bookingType;
 
-    @Column(columnDefinition = "varchar(255) default 'PENDING'")
+    @Column(columnDefinition = "varchar(255) default 'PENDING_PAYMENT'")
     private String status;
 
     @Column(name = "created_at")
@@ -55,6 +55,6 @@ public class Booking {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        if (status == null) status = "PENDING";
+        if (status == null) status = "PENDING_PAYMENT";
     }
 }

@@ -7,6 +7,7 @@ import com.example.demo.repository.BookingRepository;
 import com.example.demo.repository.CarRepository;
 import com.example.demo.repository.CarPriceRepository;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.repository.CarScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class BookingService {
     private final CarRepository carRepository;
     private final CarPriceRepository carPriceRepository;
     private final UserRepository userRepository;
+    private final CarScheduleRepository carScheduleRepository;
 
     @Transactional
     public BookingResponse createBooking(BookingRequest request, String customerEmail) {
@@ -36,7 +38,9 @@ public class BookingService {
                 .orElseThrow(() -> new RuntimeException("Car not found"));
 
         // Validate dates
-        if (request.getStartDate().isBefore(LocalDateTime.now())) {
+        LocalDateTime now = LocalDateTime.now();
+        // Allow a 5-minute grace period for "past" dates to handle latency/clock drift
+        if (request.getStartDate().isBefore(now.minusMinutes(5))) {
             throw new RuntimeException("Không cho phép đặt xe trong quá khứ. Vui lòng chọn thời gian từ hiện tại trở đi.");
         }
 
@@ -50,6 +54,14 @@ public class BookingService {
         );
         if (!overlapping.isEmpty()) {
             throw new RuntimeException("Khung giờ này xe đã có người đặt, yêu cầu chọn thời gian khác.");
+        }
+
+        // Check for overlapping UNAVAILABLE schedules
+        List<CarSchedule> overlappingSchedules = carScheduleRepository.findOverlappingSchedules(
+                car.getCarId(), request.getStartDate(), request.getEndDate()
+        );
+        if (!overlappingSchedules.isEmpty()) {
+            throw new RuntimeException("Xe đang bận hoặc bảo trì trong khung giờ này, vui lòng chọn thời gian khác.");
         }
 
         // Calculate total price
@@ -93,8 +105,16 @@ public class BookingService {
             throw new RuntimeException("You can only cancel your own bookings");
         }
 
-        if (!"PENDING".equals(booking.getStatus()) && !"CONFIRMED".equals(booking.getStatus())) {
-            throw new RuntimeException("Only PENDING or CONFIRMED bookings can be cancelled");
+        if (!"PENDING_PAYMENT".equals(booking.getStatus()) && !"CONFIRMED".equals(booking.getStatus())) {
+            throw new RuntimeException("Only PENDING_PAYMENT or CONFIRMED bookings can be cancelled");
+        }
+
+        // Check 24h cancellation policy
+        if (booking.getStartDate() != null) {
+            long hoursUntilStart = java.time.Duration.between(java.time.LocalDateTime.now(), booking.getStartDate()).toHours();
+            if (hoursUntilStart < 24) {
+                throw new RuntimeException("Không thể hủy đơn khi thời gian bắt đầu thuê xe còn dưới 24 giờ");
+            }
         }
 
         booking.setStatus("CANCELLED");
@@ -124,8 +144,34 @@ public class BookingService {
         if (!booking.getCar().getOwner().getEmail().equals(ownerEmail)) {
             throw new RuntimeException("Only car owner can complete bookings");
         }
+        
+        if (!"IN_PROGRESS".equals(booking.getStatus()) && !"CONFIRMED".equals(booking.getStatus())) {
+            throw new RuntimeException("Only IN_PROGRESS or CONFIRMED bookings can be completed");
+        }
 
         booking.setStatus("COMPLETED");
+        bookingRepository.save(booking);
+        return mapToBookingResponse(booking);
+    }
+
+    @Transactional
+    public BookingResponse handoverBooking(Integer bookingId, String ownerEmail) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        if (!booking.getCar().getOwner().getEmail().equals(ownerEmail)) {
+            throw new RuntimeException("Only car owner can confirm handover");
+        }
+
+        if (!"CONFIRMED".equals(booking.getStatus())) {
+            throw new RuntimeException("Only CONFIRMED bookings can be handed over");
+        }
+
+        if (booking.getPayment() == null || !"COMPLETED".equals(booking.getPayment().getPaymentStatus())) {
+            throw new RuntimeException("Khách hàng chưa thanh toán, không thể giao xe");
+        }
+
+        booking.setStatus("IN_PROGRESS");
         bookingRepository.save(booking);
         return mapToBookingResponse(booking);
     }
@@ -173,8 +219,8 @@ public class BookingService {
             throw new RuntimeException("Only car owner can reject bookings");
         }
 
-        if (!"PENDING".equals(booking.getStatus())) {
-            throw new RuntimeException("Only PENDING bookings can be rejected");
+        if (!"PENDING_PAYMENT".equals(booking.getStatus())) {
+            throw new RuntimeException("Only PENDING_PAYMENT bookings can be rejected");
         }
 
         booking.setStatus("REJECTED");

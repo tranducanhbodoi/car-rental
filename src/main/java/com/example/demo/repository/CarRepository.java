@@ -14,14 +14,23 @@ public interface CarRepository extends JpaRepository<Car, Integer> {
 
     List<Car> findByLocationCityAndStatus(String locationCity, String status);
 
+    boolean existsByLicensePlate(String licensePlate);
+
+    boolean existsByLicensePlateAndCarIdNot(String licensePlate, Integer carId);
+
     @Query("SELECT c FROM Car c WHERE c.status = 'AVAILABLE' " +
            "AND (:city IS NULL OR c.locationCity = :city) " +
            "AND (:brandId IS NULL OR c.brand.brandId = :brandId) " +
            "AND (:categoryId IS NULL OR c.category.categoryId = :categoryId) " +
            "AND c.carId NOT IN (" +
            "  SELECT b.car.carId FROM Booking b " +
-           "  WHERE b.status NOT IN ('CANCELLED') " +
+           "  WHERE b.status NOT IN ('CANCELLED', 'REJECTED') " +
            "  AND b.startDate < :endDate AND b.endDate > :startDate" +
+           ") " +
+           "AND c.carId NOT IN (" +
+           "  SELECT s.car.carId FROM CarSchedule s " +
+           "  WHERE s.status = 'UNAVAILABLE' " +
+           "  AND s.startDate < :endDate AND s.endDate > :startDate" +
            ")")
     List<Car> searchAvailableCars(
             @Param("city") String city,
