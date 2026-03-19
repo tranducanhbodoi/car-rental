@@ -1,4 +1,4 @@
-package com.example.demo.service;
+package com.example.demo.services;
 
 import com.example.demo.dto.PaymentRequest;
 import com.example.demo.dto.PaymentResponse;

@@ -1,7 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.*;
-import com.example.demo.service.CarService;
+import com.example.demo.services.CarService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -2,7 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.FeedbackRequest;
 import com.example.demo.dto.FeedbackResponse;
-import com.example.demo.service.FeedbackService;
+import com.example.demo.services.FeedbackService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

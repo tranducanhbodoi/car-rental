@@ -2,7 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.BookingRequest;
 import com.example.demo.dto.BookingResponse;
-import com.example.demo.service.BookingService;
+import com.example.demo.services.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -42,5 +42,24 @@ public class BookingController {
     @PutMapping("/{id}/complete")
     public ResponseEntity<BookingResponse> completeBooking(@PathVariable("id") Integer id, Authentication auth) {
         return ResponseEntity.ok(bookingService.completeBooking(id, auth.getName()));
+    }
+
+    @PatchMapping("/{id}/extend")
+    public ResponseEntity<BookingResponse> extendBooking(@PathVariable("id") Integer id,
+                                                         @Valid @RequestBody com.example.demo.dto.ExtendBookingRequest request,
+                                                         Authentication auth) {
+        return ResponseEntity.ok(bookingService.extendBooking(id, request, auth.getName()));
+    }
+
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<BookingResponse> rejectBooking(@PathVariable("id") Integer id, Authentication auth) {
+        return ResponseEntity.ok(bookingService.rejectBooking(id, auth.getName()));
+    }
+
+    @PostMapping("/offline")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<BookingResponse> createOfflineBooking(@Valid @RequestBody com.example.demo.dto.OfflineBookingRequest request,
+                                                                 Authentication auth) {
+        return ResponseEntity.ok(bookingService.createOfflineBooking(request, auth.getName()));
     }
 }

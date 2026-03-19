@@ -2,7 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.PaymentRequest;
 import com.example.demo.dto.PaymentResponse;
-import com.example.demo.service.PaymentService;
+import com.example.demo.services.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

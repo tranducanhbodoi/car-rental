@@ -4,8 +4,8 @@ import com.example.demo.dto.*;
 import com.example.demo.entity.CarSchedule;
 import com.example.demo.repository.CarScheduleRepository;
 import com.example.demo.repository.CarRepository;
-import com.example.demo.service.BookingService;
-import com.example.demo.service.CarService;
+import com.example.demo.services.BookingService;
+import com.example.demo.services.CarService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -61,7 +61,7 @@ public class OwnerController {
     }
 
     @PostMapping("/cars/{carId}/schedules")
-    public ResponseEntity<CarSchedule> addSchedule(@PathVariable("carId") Integer carId,
+    public ResponseEntity<com.example.demo.dto.CarScheduleResponse> addSchedule(@PathVariable("carId") Integer carId,
                                                      @RequestBody ScheduleRequest request,
                                                      Authentication auth) {
         var car = carRepository.findById(carId)
@@ -74,9 +74,51 @@ public class OwnerController {
                 .car(car)
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
-                .status(request.getStatus() != null ? request.getStatus() : "AVAILABLE")
+                .status(request.getStatus() != null ? request.getStatus() : "UNAVAILABLE")
                 .build();
 
-        return ResponseEntity.ok(carScheduleRepository.save(schedule));
+        schedule = carScheduleRepository.save(schedule);
+        
+        return ResponseEntity.ok(com.example.demo.dto.CarScheduleResponse.builder()
+                .scheduleId(schedule.getScheduleId())
+                .carId(car.getCarId())
+                .startDate(schedule.getStartDate())
+                .endDate(schedule.getEndDate())
+                .status(schedule.getStatus())
+                .build());
+    }
+
+    @GetMapping("/cars/{carId}/schedules")
+    public ResponseEntity<List<com.example.demo.dto.CarScheduleResponse>> getSchedules(@PathVariable("carId") Integer carId, Authentication auth) {
+        var car = carRepository.findById(carId)
+                .orElseThrow(() -> new RuntimeException("Car not found"));
+        if (!car.getOwner().getEmail().equals(auth.getName())) {
+            throw new RuntimeException("Not your car");
+        }
+        
+        List<com.example.demo.dto.CarScheduleResponse> responses = carScheduleRepository.findByCarCarId(carId).stream().map(s -> 
+            com.example.demo.dto.CarScheduleResponse.builder()
+                .scheduleId(s.getScheduleId())
+                .carId(s.getCar().getCarId())
+                .startDate(s.getStartDate())
+                .endDate(s.getEndDate())
+                .status(s.getStatus())
+                .build()
+        ).toList();
+        
+        return ResponseEntity.ok(responses);
+    }
+
+    @DeleteMapping("/schedules/{scheduleId}")
+    public ResponseEntity<?> deleteSchedule(@PathVariable("scheduleId") Integer scheduleId, Authentication auth) {
+        CarSchedule schedule = carScheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new RuntimeException("Schedule not found"));
+        
+        if (!schedule.getCar().getOwner().getEmail().equals(auth.getName())) {
+            throw new RuntimeException("Not your schedule");
+        }
+        
+        carScheduleRepository.delete(schedule);
+        return ResponseEntity.ok().build();
     }
 }
