@@ -24,6 +24,7 @@ public class CarService {
     private final CarScheduleRepository carScheduleRepository;
     private final FeedbackRepository feedbackRepository;
     private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
 
     public List<CarResponse> searchCars(CarSearchRequest request) {
         LocalDateTime startDate = request.getStartDate() != null ? request.getStartDate() : LocalDateTime.now();
@@ -57,6 +58,10 @@ public class CarService {
                 .orElseThrow(() -> new RuntimeException("Brand not found"));
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        if (carRepository.existsByLicensePlate(request.getLicensePlate())) {
+            throw new RuntimeException("Biển số xe đã được đăng ký trong hệ thống");
+        }
 
         Car car = Car.builder()
                 .owner(owner)
@@ -112,6 +117,10 @@ public class CarService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
+        if (carRepository.existsByLicensePlateAndCarIdNot(request.getLicensePlate(), carId)) {
+            throw new RuntimeException("Biển số xe đã được đăng ký bởi hệ thống cho xe khác");
+        }
+
         car.setBrand(brand);
         car.setCategory(category);
         car.setName(request.getName());
@@ -153,6 +162,12 @@ public class CarService {
         if (!car.getOwner().getEmail().equals(ownerEmail)) {
             throw new RuntimeException("You are not the owner of this car");
         }
+
+        boolean hasActiveBookings = bookingRepository.existsByCarCarIdAndStatusIn(carId, List.of("PENDING_PAYMENT", "CONFIRMED", "IN_PROGRESS"));
+        if (hasActiveBookings) {
+            throw new RuntimeException("Không thể xóa xe khi đang có đơn đặt xe (chưa hoàn thành)");
+        }
+
         carRepository.delete(car);
     }
 

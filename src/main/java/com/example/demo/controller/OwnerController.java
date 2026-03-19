@@ -49,7 +49,7 @@ public class OwnerController {
 
         long totalBookings = bookings.size();
         long completedBookings = bookings.stream().filter(b -> "COMPLETED".equals(b.getStatus())).count();
-        long pendingBookings = bookings.stream().filter(b -> "PENDING".equals(b.getStatus())).count();
+        long pendingBookings = bookings.stream().filter(b -> "PENDING_PAYMENT".equals(b.getStatus())).count();
 
         Map<String, Object> revenue = new HashMap<>();
         revenue.put("totalRevenue", totalRevenue);
@@ -76,6 +76,24 @@ public class OwnerController {
                 .endDate(request.getEndDate())
                 .status(request.getStatus() != null ? request.getStatus() : "UNAVAILABLE")
                 .build();
+
+        // Validate dates
+        if (request.getStartDate() == null || request.getEndDate() == null) {
+            throw new RuntimeException("Ngày bắt đầu và kết thúc không được để trống");
+        }
+        if (!request.getEndDate().isAfter(request.getStartDate())) {
+            throw new RuntimeException("Ngày kết thúc phải sau ngày bắt đầu");
+        }
+
+        // Check for overlapping schedules
+        List<CarSchedule> existingSchedules = carScheduleRepository.findByCarCarId(carId);
+        for (CarSchedule existing : existingSchedules) {
+            if (request.getStartDate().isBefore(existing.getEndDate()) && request.getEndDate().isAfter(existing.getStartDate())) {
+                throw new RuntimeException("Khoảng thời gian bị trùng với lịch hiện tại (" +
+                    existing.getStartDate().toString().replace("T", " ") + " - " +
+                    existing.getEndDate().toString().replace("T", " ") + ")");
+            }
+        }
 
         schedule = carScheduleRepository.save(schedule);
         
@@ -120,5 +138,10 @@ public class OwnerController {
         
         carScheduleRepository.delete(schedule);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/bookings/{bookingId}/handover")
+    public ResponseEntity<BookingResponse> handoverCar(@PathVariable("bookingId") Integer bookingId, Authentication auth) {
+        return ResponseEntity.ok(bookingService.handoverBooking(bookingId, auth.getName()));
     }
 }

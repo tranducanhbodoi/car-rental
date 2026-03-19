@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/brands/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/feedbacks/**").permitAll()
+                .requestMatchers("/api/payments/vnpay-verify").permitAll() // Make verification public
                 .requestMatchers("/api/cars/search").permitAll()
                 // Owner endpoints
                 .requestMatchers("/api/owner/**").hasRole("OWNER")

@@ -2,6 +2,8 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.*;
 import com.example.demo.services.CarService;
+import com.example.demo.repository.CarScheduleRepository;
+import com.example.demo.repository.BookingRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/cars")
@@ -16,6 +19,8 @@ import java.util.List;
 public class CarController {
 
     private final CarService carService;
+    private final CarScheduleRepository carScheduleRepository;
+    private final BookingRepository bookingRepository;
 
     @GetMapping("/search")
     public ResponseEntity<List<CarResponse>> searchCars(CarSearchRequest request) {
@@ -30,6 +35,33 @@ public class CarController {
     @GetMapping("/{id}")
     public ResponseEntity<CarResponse> getCarById(@PathVariable("id") Integer id) {
         return ResponseEntity.ok(carService.getCarById(id));
+    }
+
+    @GetMapping("/{id}/schedules")
+    public ResponseEntity<List<CarScheduleResponse>> getCarSchedules(@PathVariable("id") Integer carId) {
+        List<CarScheduleResponse> schedules = carScheduleRepository.findByCarCarId(carId).stream()
+                .map(s -> CarScheduleResponse.builder()
+                        .scheduleId(s.getScheduleId())
+                        .carId(s.getCar().getCarId())
+                        .startDate(s.getStartDate())
+                        .endDate(s.getEndDate())
+                        .status(s.getStatus())
+                        .build())
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(schedules);
+    }
+
+    @GetMapping("/{id}/booked-dates")
+    public ResponseEntity<List<BookingResponse>> getCarBookedDates(@PathVariable("id") Integer carId) {
+        List<BookingResponse> bookings = bookingRepository.findByCarCarId(carId).stream()
+                .filter(b -> !"CANCELLED".equals(b.getStatus()) && !"REJECTED".equals(b.getStatus()) && !"COMPLETED".equals(b.getStatus()))
+                .map(b -> BookingResponse.builder()
+                        .startDate(b.getStartDate())
+                        .endDate(b.getEndDate())
+                        .status(b.getStatus())
+                        .build())
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(bookings);
     }
 
     @PostMapping

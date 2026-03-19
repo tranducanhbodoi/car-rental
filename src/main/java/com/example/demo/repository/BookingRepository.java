@@ -14,8 +14,10 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
 
     List<Booking> findByCarCarId(Integer carId);
 
+    boolean existsByCarCarIdAndStatusIn(Integer carId, List<String> statuses);
+
     @Query("SELECT b FROM Booking b WHERE b.car.carId = :carId " +
-           "AND b.status NOT IN ('CANCELLED') " +
+           "AND b.status NOT IN ('CANCELLED', 'REJECTED', 'COMPLETED') " +
            "AND b.startDate < :endDate AND b.endDate > :startDate")
     List<Booking> findOverlappingBookings(
             @Param("carId") Integer carId,
@@ -23,7 +25,7 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
             @Param("endDate") LocalDateTime endDate
     );
 
-    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING' AND b.createdAt < :cutoff")
+    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING_PAYMENT' AND b.createdAt < :cutoff")
     List<Booking> findPendingBookingsOlderThan(@Param("cutoff") LocalDateTime cutoff);
 
     @Query("SELECT b FROM Booking b WHERE b.car.owner.id = :ownerId")
