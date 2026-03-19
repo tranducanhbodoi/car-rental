@@ -26,4 +26,5 @@ public class BookingResponse {
     private String status;
     private LocalDateTime createdAt;
     private String paymentStatus;
+    private boolean hasFeedback;
 }

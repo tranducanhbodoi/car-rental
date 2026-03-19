@@ -1,4 +1,4 @@
-package com.example.demo.service;
+package com.example.demo.services;
 
 import com.example.demo.dto.BookingRequest;
 import com.example.demo.dto.BookingResponse;
@@ -36,6 +36,10 @@ public class BookingService {
                 .orElseThrow(() -> new RuntimeException("Car not found"));
 
         // Validate dates
+        if (request.getStartDate().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Không cho phép đặt xe trong quá khứ. Vui lòng chọn thời gian từ hiện tại trở đi.");
+        }
+
         if (request.getEndDate().isBefore(request.getStartDate()) || request.getEndDate().isEqual(request.getStartDate())) {
             throw new RuntimeException("End date must be after start date");
         }
@@ -45,7 +49,7 @@ public class BookingService {
                 car.getCarId(), request.getStartDate(), request.getEndDate()
         );
         if (!overlapping.isEmpty()) {
-            throw new RuntimeException("Car is not available for the selected dates. There is a conflicting booking.");
+            throw new RuntimeException("Khung giờ này xe đã có người đặt, yêu cầu chọn thời gian khác.");
         }
 
         // Calculate total price
@@ -127,10 +131,109 @@ public class BookingService {
     }
 
     // Auto-cancel pending bookings older than 30 minutes
+    @Transactional
+    public BookingResponse extendBooking(Integer bookingId, com.example.demo.dto.ExtendBookingRequest request, String userEmail) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        if (!booking.getCustomer().getEmail().equals(userEmail)) {
+            throw new RuntimeException("You can only extend your own bookings");
+        }
+
+        if (request.getNewEndDate().isBefore(booking.getEndDate()) || request.getNewEndDate().isEqual(booking.getEndDate())) {
+            throw new RuntimeException("New end date must be after current end date");
+        }
+
+        List<Booking> overlapping = bookingRepository.findOverlappingBookings(
+                booking.getCar().getCarId(), booking.getEndDate(), request.getNewEndDate()
+        );
+        boolean conflict = overlapping.stream().anyMatch(b -> !b.getBookingId().equals(bookingId));
+        if (conflict) {
+            throw new RuntimeException("Khung giờ này xe đã có người đặt, yêu cầu chọn thời gian khác.");
+        }
+
+        booking.setEndDate(request.getNewEndDate());
+        
+        BookingRequest tempReq = new BookingRequest();
+        tempReq.setStartDate(booking.getStartDate());
+        tempReq.setEndDate(booking.getEndDate());
+        tempReq.setBookingType(booking.getBookingType());
+        booking.setTotalPrice(calculateTotalPrice(booking.getCar(), tempReq));
+
+        bookingRepository.save(booking);
+        return mapToBookingResponse(booking);
+    }
+
+    @Transactional
+    public BookingResponse rejectBooking(Integer bookingId, String ownerEmail) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        if (!booking.getCar().getOwner().getEmail().equals(ownerEmail)) {
+            throw new RuntimeException("Only car owner can reject bookings");
+        }
+
+        if (!"PENDING".equals(booking.getStatus())) {
+            throw new RuntimeException("Only PENDING bookings can be rejected");
+        }
+
+        booking.setStatus("REJECTED");
+        bookingRepository.save(booking);
+        return mapToBookingResponse(booking);
+    }
+
+    @Transactional
+    public BookingResponse createOfflineBooking(com.example.demo.dto.OfflineBookingRequest request, String ownerEmail) {
+        Car car = carRepository.findById(request.getCarId())
+                .orElseThrow(() -> new RuntimeException("Car not found"));
+        
+        if (!car.getOwner().getEmail().equals(ownerEmail)) {
+            throw new RuntimeException("Only car owner can create offline bookings for their car");
+        }
+
+        List<Booking> overlapping = bookingRepository.findOverlappingBookings(
+                car.getCarId(), request.getStartDate(), request.getEndDate()
+        );
+        if (!overlapping.isEmpty()) {
+            throw new RuntimeException("Khung giờ này xe đã có người đặt, yêu cầu chọn thời gian khác.");
+        }
+
+        String offlineEmail = request.getCustomerPhone() + "@offline.com";
+        User customer = userRepository.findByEmail(offlineEmail).orElseGet(() -> {
+            User newUser = User.builder()
+                .email(offlineEmail)
+                .fullName(request.getCustomerName())
+                .password("OFFLINE")
+                .phone(request.getCustomerPhone())
+                .build();
+            return userRepository.save(newUser);
+        });
+
+        BookingRequest tempReq = new BookingRequest();
+        tempReq.setStartDate(request.getStartDate());
+        tempReq.setEndDate(request.getEndDate());
+        tempReq.setBookingType(request.getBookingType() != null ? request.getBookingType() : "DAY");
+        BigDecimal totalPrice = calculateTotalPrice(car, tempReq);
+
+        Booking booking = Booking.builder()
+                .customer(customer)
+                .car(car)
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .totalPrice(totalPrice)
+                .bookingType(tempReq.getBookingType())
+                .status("COMPLETED")
+                .build();
+
+        booking = bookingRepository.save(booking);
+        return mapToBookingResponse(booking);
+    }
+
+    // Auto-cancel pending bookings older than 15 minutes
     @Scheduled(fixedRate = 60000) // Run every minute
     @Transactional
     public void autoCancelExpiredBookings() {
-        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(30);
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(15);
         List<Booking> expiredBookings = bookingRepository.findPendingBookingsOlderThan(cutoff);
         for (Booking booking : expiredBookings) {
             booking.setStatus("CANCELLED");
@@ -179,6 +282,7 @@ public class BookingService {
                 .status(booking.getStatus())
                 .createdAt(booking.getCreatedAt())
                 .paymentStatus(booking.getPayment() != null ? booking.getPayment().getPaymentStatus() : "NOT_PAID")
+                .hasFeedback(booking.getFeedback() != null)
                 .build();
     }
 }

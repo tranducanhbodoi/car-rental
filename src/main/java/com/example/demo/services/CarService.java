@@ -1,4 +1,4 @@
-package com.example.demo.service;
+package com.example.demo.services;
 
 import com.example.demo.dto.*;
 import com.example.demo.entity.*;
