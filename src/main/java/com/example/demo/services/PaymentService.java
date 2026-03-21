@@ -47,8 +47,8 @@ public class PaymentService {
 
         payment = paymentRepository.save(payment);
 
-        // Update booking status to CONFIRMED after payment
-        booking.setStatus("CONFIRMED");
+        // Update booking status to PENDING after payment (waiting for owner approval)
+        booking.setStatus("PENDING");
         bookingRepository.save(booking);
 
         return mapToPaymentResponse(payment);
@@ -150,7 +150,7 @@ public class PaymentService {
                     .build();
             paymentRepository.save(payment);
 
-            booking.setStatus("CONFIRMED");
+            booking.setStatus("PENDING");
             bookingRepository.save(booking);
         }
     }

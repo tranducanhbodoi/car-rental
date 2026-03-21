@@ -49,7 +49,7 @@ public class OwnerController {
 
         long totalBookings = bookings.size();
         long completedBookings = bookings.stream().filter(b -> "COMPLETED".equals(b.getStatus())).count();
-        long pendingBookings = bookings.stream().filter(b -> "PENDING_PAYMENT".equals(b.getStatus())).count();
+        long pendingBookings = bookings.stream().filter(b -> "PENDING_PAYMENT".equals(b.getStatus()) || "PENDING".equals(b.getStatus())).count();
 
         Map<String, Object> revenue = new HashMap<>();
         revenue.put("totalRevenue", totalRevenue);

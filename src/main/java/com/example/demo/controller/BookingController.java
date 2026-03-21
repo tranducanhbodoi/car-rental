@@ -51,7 +51,7 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.extendBooking(id, request, auth.getName()));
     }
 
-    @PatchMapping("/{id}/reject")
+    @PutMapping("/{id}/reject")
     public ResponseEntity<BookingResponse> rejectBooking(@PathVariable("id") Integer id, Authentication auth) {
         return ResponseEntity.ok(bookingService.rejectBooking(id, auth.getName()));
     }
