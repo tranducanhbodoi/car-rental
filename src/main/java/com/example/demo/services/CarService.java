@@ -163,7 +163,7 @@ public class CarService {
             throw new RuntimeException("You are not the owner of this car");
         }
 
-        boolean hasActiveBookings = bookingRepository.existsByCarCarIdAndStatusIn(carId, List.of("PENDING_PAYMENT", "CONFIRMED", "IN_PROGRESS"));
+        boolean hasActiveBookings = bookingRepository.existsByCarCarIdAndStatusIn(carId, List.of("PENDING_PAYMENT", "PENDING", "CONFIRMED", "IN_PROGRESS"));
         if (hasActiveBookings) {
             throw new RuntimeException("Không thể xóa xe khi đang có đơn đặt xe (chưa hoàn thành)");
         }

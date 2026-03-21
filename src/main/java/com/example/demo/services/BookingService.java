@@ -105,8 +105,8 @@ public class BookingService {
             throw new RuntimeException("You can only cancel your own bookings");
         }
 
-        if (!"PENDING_PAYMENT".equals(booking.getStatus()) && !"CONFIRMED".equals(booking.getStatus())) {
-            throw new RuntimeException("Only PENDING_PAYMENT or CONFIRMED bookings can be cancelled");
+        if (!"PENDING_PAYMENT".equals(booking.getStatus()) && !"PENDING".equals(booking.getStatus()) && !"CONFIRMED".equals(booking.getStatus())) {
+            throw new RuntimeException("Only PENDING_PAYMENT, PENDING or CONFIRMED bookings can be cancelled");
         }
 
         // Check 24h cancellation policy
@@ -127,8 +127,8 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
-        if (!booking.getCar().getOwner().getEmail().equals(ownerEmail)) {
-            throw new RuntimeException("Only car owner can confirm bookings");
+        if (!"PENDING".equals(booking.getStatus())) {
+            throw new RuntimeException("Chỉ đơn hàng đang chờ duyệt mới có thể phê duyệt");
         }
 
         booking.setStatus("CONFIRMED");
@@ -219,11 +219,11 @@ public class BookingService {
             throw new RuntimeException("Only car owner can reject bookings");
         }
 
-        if (!"PENDING_PAYMENT".equals(booking.getStatus())) {
-            throw new RuntimeException("Only PENDING_PAYMENT bookings can be rejected");
+        if (!"PENDING".equals(booking.getStatus()) && !"PENDING_PAYMENT".equals(booking.getStatus())) {
+            throw new RuntimeException("Chỉ đơn hàng chờ thanh toán hoặc chờ duyệt mới có thể hủy/từ chối");
         }
 
-        booking.setStatus("REJECTED");
+        booking.setStatus("CANCELLED");
         bookingRepository.save(booking);
         return mapToBookingResponse(booking);
     }
